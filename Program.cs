@@ -10,11 +10,11 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddTransient<AuthService>();
 
-//importando os middlewares
+
 builder.Services.AddAuthentication(x =>
 {
     x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    // a forma como vai interrogar a requisição, onde está o token etc
+
     x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(x =>
 {
@@ -55,6 +55,6 @@ app.MapGet("/restricted", (ClaimsPrincipal user) => new
     email = user.Email()
 }).RequireAuthorization();
 
-app.MapGet("/admin", () => "You have access to the system, administrator.").RequireAuthorization("admin"); //RequireAuthorization busca a política
+app.MapGet("/admin", () => "You have access to the system, administrator.").RequireAuthorization("admin");
 
 app.Run();

@@ -15,8 +15,6 @@ namespace AuthAspNet.Services
 
             var key = Encoding.ASCII.GetBytes(Configuration.PrivateKey);
 
-            //chave simetrica, é esperado no primeiro parâmetro
-            //token sendo assinado abaixo, com o formato HmacSha256
             var credentials = new SigningCredentials(
                 new SymmetricSecurityKey(key),
                 SecurityAlgorithms.HmacSha256);
