@@ -5,9 +5,18 @@ namespace AuthTest.Extensions
 {
     public static class ClaimTypesExtension
     {
-        public static Guid Id(this ClaimsPrincipal user)
+        public static int Id(this ClaimsPrincipal user)
         {
-            return Guid.NewGuid();
+            var idClaim = user.Claims.FirstOrDefault(x => x.Type == "Id")?.Value;
+            try
+            {
+                return Convert.ToInt32(idClaim);
+            }
+            catch (FormatException)
+            {
+                Console.WriteLine("Erro: Valor de ID inválido na claim.");
+                return 0; 
+            }
         }
         public static string Name(this ClaimsPrincipal user)
         {

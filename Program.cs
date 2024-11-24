@@ -1,15 +1,27 @@
 using AuthAspNet;
-using AuthAspNet.Models;
 using AuthAspNet.Services;
+using AuthTest.Data;
 using AuthTest.Extensions;
+using AuthTest.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Adiciona suporte para ler configurações de appsettings.json
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+builder.Services.AddDbContext<AuthDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("AuthDb"))); 
+builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 builder.Services.AddTransient<AuthService>();
 
+
+var configuration = builder.Services.BuildServiceProvider().GetRequiredService<IConfiguration>();
+var key = configuration["Jwt:Key"];
 
 builder.Services.AddAuthentication(x =>
 {
@@ -19,7 +31,7 @@ builder.Services.AddAuthentication(x =>
 }).AddJwtBearer(x =>
 {
     x.TokenValidationParameters = new TokenValidationParameters{
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(Configuration.PrivateKey)), //obter e descriptar
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(key)), //obter e descriptar
         ValidateIssuer = false,
         ValidateAudience = false 
     };
@@ -35,16 +47,14 @@ var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/login", (AuthService service) =>
+app.MapGet("/login", async (string email, string password, AuthService authService) =>
 {
-    var user = new User
-    {
-        Name = "Felipe",
-        Email = "felipe@gmail.com",
-        Roles = new[] { "aluno" }
-    };
-        
-    return service.Create(user);
+    var token = await authService.CreateTokenAsync(email, password);
+
+    if (token != null)
+        return Results.Ok(new { token });
+    else
+        return Results.Unauthorized();
 }
 );
 
