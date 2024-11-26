@@ -1,35 +1,16 @@
 ﻿using System.Security.Claims;
-using System.Xml.Linq;
 
 namespace AuthTest.Extensions
 {
-    public static class ClaimTypesExtension
+    internal static class ClaimTypesExtension
     {
-        public static Guid Id(this ClaimsPrincipal user)
-        {
-            return Guid.NewGuid();
-        }
-        public static string Name(this ClaimsPrincipal user)
-        {
-            try
-            {
-                return user.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Name)?.Value ?? string.Empty;
-            }
-            catch
-            {
-                return string.Empty;
-            }
-        }
-        public static string Email(this ClaimsPrincipal user)
-        {
-            try
-            {
-                return user.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value ?? string.Empty;
-            }
-            catch
-            {
-                return string.Empty;
-            }
-        }
+        internal static Guid UserId(this ClaimsPrincipal user)
+             => Guid.NewGuid();
+
+        internal static string UserName(this ClaimsPrincipal user)
+            => user.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Name)?.Value ?? string.Empty;
+
+        internal static string UserEmail(this ClaimsPrincipal user)
+           => user.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value ?? string.Empty;
     }
 }

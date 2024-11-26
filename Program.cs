@@ -1,58 +1,44 @@
-using AuthAspNet;
 using AuthAspNet.Models;
 using AuthAspNet.Services;
+using AuthTest.Configuration;
 using AuthTest.Extensions;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddTransient<AuthService>();
 
+#region Application Configuration
+builder.AddAuthConfig().AddDependencyInjection();
 
-builder.Services.AddAuthentication(x =>
-{
-    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+builder.Services.AddSwaggerGen();
+#endregion
 
-    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(x =>
-{
-    x.TokenValidationParameters = new TokenValidationParameters{
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(Configuration.PrivateKey)), //obter e descriptar
-        ValidateIssuer = false,
-        ValidateAudience = false 
-    };
-}); //padrão será bearer
-
-builder.Services.AddAuthorization(x =>
-{
-    x.AddPolicy("admin", p => p.RequireRole("admin"));
-});
-
-
+#region Middleware Pipeline Configuration
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
+#endregion
 
-app.MapGet("/login", (AuthService service) =>
+app.MapPost("/login", (AuthService service, [FromBody] User user) =>
 {
-    var user = new User
-    {
-        Name = "Felipe",
-        Email = "felipe@gmail.com",
-        Roles = new[] { "aluno" }
-    };
+    var users = new User(user.Name, user.Email, user.Roles);
         
-    return service.Create(user);
+    return Results.Ok(service.Create(user));
 }
 );
 
 app.MapGet("/restricted", (ClaimsPrincipal user) => new
 {
-    id = user.Id(),
-    name = user.Name(),
-    email = user.Email()
+    id = user.UserId(),
+    name = user.UserName(),
+    email = user.UserEmail()
 }).RequireAuthorization();
 
 app.MapGet("/admin", () => "You have access to the system, administrator.").RequireAuthorization("admin");
