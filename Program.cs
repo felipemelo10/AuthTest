@@ -1,12 +1,10 @@
 using AuthAspNet;
 using AuthAspNet.Services;
 using AuthTest.Data;
-using AuthTest.Extensions;
 using AuthTest.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,25 +13,20 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
 builder.Services.AddDbContext<AuthDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("AuthDb"))); 
-builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
-builder.Services.AddTransient<AuthService>();
+    options.UseSqlite(builder.Configuration.GetConnectionString("AuthDb")));
 
+builder.Services.AddTransient<AuthService>(); // Injeção de dependência
 
-var configuration = builder.Services.BuildServiceProvider().GetRequiredService<IConfiguration>();
-var key = configuration["Jwt:Key"];
-
-builder.Services.AddAuthentication(x =>
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
 {
-    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    IConfiguration configuration = builder.Configuration;
+    var key = configuration["Jwt:Key"];
 
-    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(x =>
-{
-    x.TokenValidationParameters = new TokenValidationParameters{
+    options.TokenValidationParameters = new TokenValidationParameters{
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(key)), //obter e descriptar
         ValidateIssuer = false,
-        ValidateAudience = false 
+        ValidateAudience = false
     };
 }); //padrão será bearer
 
@@ -47,7 +40,7 @@ var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/login", async (string email, string password, AuthService authService) =>
+app.MapPost("/login", async (string email, string password, AuthService authService) =>
 {
     var token = await authService.CreateTokenAsync(email, password);
 
@@ -57,13 +50,6 @@ app.MapGet("/login", async (string email, string password, AuthService authServi
         return Results.Unauthorized();
 }
 );
-
-app.MapGet("/restricted", (ClaimsPrincipal user) => new
-{
-    id = user.Id(),
-    name = user.Name(),
-    email = user.Email()
-}).RequireAuthorization();
 
 app.MapGet("/admin", () => "You have access to the system, administrator.").RequireAuthorization("admin");
 

@@ -7,6 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using BCrypt.Net;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace AuthAspNet.Services
 {
@@ -23,17 +24,19 @@ namespace AuthAspNet.Services
 
         public async Task<string> CreateTokenAsync(string userName, string password)
         {
-            var user = await _dbContext.Users.Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
-                .FirstOrDefaultAsync(u=> u.Email == userName); //busca pelo email
+            var getuser = await _dbContext.Users.ToListAsync();
 
-            if(user == null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
+            var user = await _dbContext.Users.Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u=> u.Email.ToLower() == userName.ToLower()); //busca pelo email
+
+            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
             {
                 throw new Exception("Usuário/senha inválidos.");
             }
 
             var handler = new JwtSecurityTokenHandler();
 
-            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]); // ler PrivateKey de appsettings.json
+            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]); //ler PrivateKey de appsettings.json
 
             var credentials = new SigningCredentials(
                 new SymmetricSecurityKey(key),
